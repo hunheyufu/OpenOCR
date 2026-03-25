@@ -12,20 +12,22 @@ from tools.utility import ArgsParser
 from tools.utils.logging import get_logger
 
 
-def to_onnx(model, dummy_input, dynamic_axes, sava_path='model.onnx'):
-    input_axis_name = ['batch_size', 'channel', 'in_width', 'int_height']
-    output_axis_name = ['batch_size', 'channel', 'out_width', 'out_height']
+def to_onnx(
+    model,
+    dummy_input,
+    input_dynamic_axes,
+    output_dynamic_axes,
+    save_path='model.onnx',
+):
     torch.onnx.export(
         model.to('cpu'),
         dummy_input,
-        sava_path,
+        save_path,
         input_names=['input'],
         output_names=['output'],  # the model's output names
         dynamic_axes={
-            'input': {axis: input_axis_name[axis]
-                      for axis in dynamic_axes},
-            'output': {axis: output_axis_name[axis]
-                       for axis in dynamic_axes},
+            'input': input_dynamic_axes,
+            'output': output_dynamic_axes,
         },
     )
 
@@ -40,24 +42,30 @@ def main(cfg):
     if _cfg['Architecture']['algorithm'] == 'SVTRv2_mobile':
         from tools.infer_rec import OpenRecognizer
         model = OpenRecognizer(_cfg).model
-        dynamic_axes = [0, 3]
+        input_dynamic_axes = {0: 'batch_size', 3: 'in_width'}
+        output_dynamic_axes = {0: 'batch_size', 1: 'seq_len'}
         dummy_input = torch.randn([1, 3, 48, 320], device='cpu')
         if not export_dir:
             export_dir = os.path.join(
                 global_config.get('output_dir', 'output'), 'export_rec')
         save_path = os.path.join(export_dir, 'rec_model.onnx')
-    if _cfg['Architecture']['algorithm'] == 'DB_mobile':
+    elif _cfg['Architecture']['algorithm'] == 'DB_mobile':
         from tools.infer_det import OpenDetector
         model = OpenDetector(_cfg).model
-        dynamic_axes = [0, 2, 3]
+        input_dynamic_axes = {0: 'batch_size', 2: 'in_height', 3: 'in_width'}
+        output_dynamic_axes = {0: 'batch_size', 2: 'out_height', 3: 'out_width'}
         dummy_input = torch.randn([1, 3, 960, 960], device='cpu')
         if not export_dir:
             export_dir = os.path.join(
                 global_config.get('output_dir', 'output'), 'export_det')
         save_path = os.path.join(export_dir, 'det_model.onnx')
+    else:
+        raise ValueError(
+            f"Unsupported algorithm for ONNX export: {_cfg['Architecture']['algorithm']}"
+        )
 
     os.makedirs(export_dir, exist_ok=True)
-    to_onnx(model, dummy_input, dynamic_axes, save_path)
+    to_onnx(model, dummy_input, input_dynamic_axes, output_dynamic_axes, save_path)
     logger.info(f'finish export model to {save_path}')
 
 

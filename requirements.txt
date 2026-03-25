@@ -2,6 +2,7 @@ imgaug
 lmdb
 numpy
 opencv-python
+Pillow
 pyclipper
 pyyaml
 rapidfuzz

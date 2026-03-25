@@ -16,13 +16,13 @@ from tools.utils.ckpt import load_ckpt
 from tools.utils.logging import get_logger
 
 
-def to_onnx(model, dummy_input, dynamic_axes, sava_path='model.onnx'):
-    input_axis_name = ['batch_size', 'channel', 'in_width', 'int_height']
-    output_axis_name = ['batch_size', 'channel', 'out_width', 'out_height']
+def to_onnx(model, dummy_input, dynamic_axes, save_path='model.onnx'):
+    input_axis_name = ['batch_size', 'channel', 'in_height', 'in_width']
+    output_axis_name = ['batch_size', 'channel', 'out_height', 'out_width']
     torch.onnx.export(
         model.to('cpu'),
         dummy_input,
-        sava_path,
+        save_path,
         input_names=['input'],
         output_names=['output'],  # the model's output names
         dynamic_axes={

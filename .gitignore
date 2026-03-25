@@ -43,3 +43,6 @@ gradio_outputs/
 openocr_test_images/
 openocr_output/
 test_output/
+my_data/test/
+my_data/train/
+my_data/*.txt

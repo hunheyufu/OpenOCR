@@ -261,6 +261,8 @@ class OpenRecognizer:
                     raise ValueError('ONNX模式需要指定onnx_model_path参数')
             self.onnx_rec_engine = ONNXEngine(
                 onnx_model_path, use_gpu=(device == 'gpu'))
+            warmup_iters = int(self.cfg['Global'].get('onnx_warmup_iters', 3))
+            self.onnx_rec_engine.warmup(num_iters=warmup_iters)
         else:
             raise ValueError("backend参数必须是'torch'或'onnx'")
 
@@ -272,7 +274,13 @@ class OpenRecognizer:
         # 构建预处理流程
         algorithm_name = self.cfg['Architecture']['algorithm']
         if algorithm_name in ['SVTRv2_mobile', 'SVTRv2_server']:
-            self.cfg['Global']['character_dict_path'] = DEFAULT_DICT_PATH_REC
+            # Keep custom dict from config; only fallback when nothing is provided.
+            global_dict = self.cfg['Global'].get('character_dict_path', None)
+            post_dict = self.cfg.get('PostProcess', {}).get('character_dict_path', None)
+            if not global_dict and post_dict:
+                self.cfg['Global']['character_dict_path'] = post_dict
+            elif not global_dict:
+                self.cfg['Global']['character_dict_path'] = DEFAULT_DICT_PATH_REC
         self.post_process_class = build_post_process(self.cfg['PostProcess'],
                                                      self.cfg['Global'])
         char_num = self.post_process_class.get_character_num()
@@ -392,7 +400,7 @@ class OpenRecognizer:
                 h, w = resized_image.shape[-2:]
                 max_width = max(max_width, w)
                 max_height = max(max_height, h)
-                batch_data.append(batch[0])
+                batch_data.append(resized_image)
 
             padded_batch = np.zeros(
                 (len(batch_data), 3, max_height, max_width), dtype=np.float32)

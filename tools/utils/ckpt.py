@@ -91,9 +91,20 @@ def load_pretrained_params(model, pretrained_model, logger):
     else:
         state_dict = checkpoint
 
-    model.load_state_dict(state_dict, strict=False)
-    model_keys = model.state_dict().keys()
-    for name in model_keys:
-        if name not in state_dict:
-            logger.info(f"{name} is not in pretrained model")
+    model_state = model.state_dict()
+    filtered_state = {}
+    for name, tensor in state_dict.items():
+        if name not in model_state:
+            continue
+        if model_state[name].shape != tensor.shape:
+            logger.info(
+                f"skip load {name}, checkpoint shape {tuple(tensor.shape)} != model shape {tuple(model_state[name].shape)}"
+            )
+            continue
+        filtered_state[name] = tensor
+
+    model.load_state_dict(filtered_state, strict=False)
+    for name in model_state.keys():
+        if name not in filtered_state:
+            logger.info(f"{name} is not loaded from pretrained model")
 
