@@ -46,3 +46,8 @@ test_output/
 my_data/test/
 my_data/train/
 my_data/*.txt
+TensorRT_infer/.vscode/
+TensorRT_infer/build/
+TensorRT_infer/data/
+TensorRT_infer/output/
+TensorRT_infer/engine/*.engine
